@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/sri/s3-proxy-go/internal/catalog"
 	"github.com/sri/s3-proxy-go/internal/meta"
 )
 
@@ -60,6 +61,17 @@ func handlePutObject(rc *RouteConfig, w http.ResponseWriter, r *http.Request) {
 		log.Printf("PutObject %s/%s: failed to store .meta: %v", bucket, key, err)
 		http.Error(w, "Failed to store metadata", http.StatusInternalServerError)
 		return
+	}
+
+	if rc.Catalog != nil {
+		recCtx := catalog.RecordContext{
+			AccountName: rc.AccountName,
+			Bucket:      bucket,
+			Key:         key,
+		}
+		if err := rc.Catalog.RecordPut(r.Context(), recCtx, r.Header, securityTag); err != nil {
+			log.Printf("PutObject %s/%s: catalog record failed: %v", bucket, key, err)
+		}
 	}
 
 	w.WriteHeader(http.StatusOK)

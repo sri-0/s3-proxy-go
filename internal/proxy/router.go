@@ -6,10 +6,11 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/sri/s3-proxy-go/internal/backend"
+	"github.com/sri/s3-proxy-go/internal/catalog"
 	"github.com/sri/s3-proxy-go/internal/config"
 )
 
-func BuildRouter(cfg *config.Config, backends map[string]backend.Backend) *mux.Router {
+func BuildRouter(cfg *config.Config, backends map[string]backend.Backend, cat catalog.Catalog) *mux.Router {
 	router := mux.NewRouter()
 	allowedTags := cfg.AllowedTagSet()
 	excludedHeaders := cfg.ExcludedHeaderSet()
@@ -28,6 +29,7 @@ func BuildRouter(cfg *config.Config, backends map[string]backend.Backend) *mux.R
 					MandatoryHeaders:    cfg.MandatoryPutHeaders,
 					SecurityTagHeader:   cfg.SecurityTagHeader,
 					ExcludedMetaHeaders: excludedHeaders,
+					Catalog:             cat,
 				}
 
 				prefix := acc.PathPrefix + "/" + bkt.Name
@@ -45,6 +47,7 @@ func BuildRouter(cfg *config.Config, backends map[string]backend.Backend) *mux.R
 				MandatoryHeaders:    cfg.MandatoryPutHeaders,
 				SecurityTagHeader:   cfg.SecurityTagHeader,
 				ExcludedMetaHeaders: excludedHeaders,
+				Catalog:             cat,
 			}
 
 			prefix := acc.PathPrefix + "/{bucket}"
@@ -53,6 +56,14 @@ func BuildRouter(cfg *config.Config, backends map[string]backend.Backend) *mux.R
 			log.Printf("route %s at %s/* ops=%v",
 				acc.Name, acc.PathPrefix, acc.AllowedOperations)
 		}
+	}
+
+	if cat != nil {
+		catalogHandler := catalog.NewHandler(cat, cfg.SecurityTagHeader)
+		router.HandleFunc("/catalog/objects/{bucket}/{key:.+}", catalogHandler.HandleObjectHistory).Methods("GET")
+		router.HandleFunc("/catalog/objects", catalogHandler.HandleQuery).Methods("GET")
+		router.HandleFunc("/catalog/stats", catalogHandler.HandleStats).Methods("GET")
+		log.Printf("catalog query endpoints registered at /catalog/*")
 	}
 
 	return router

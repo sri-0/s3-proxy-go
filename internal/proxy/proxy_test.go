@@ -73,7 +73,7 @@ func setupTestRouter(t *testing.T) (*httptest.Server, *backend.MemoryBackend, *b
 		"archive": archiveBE,
 	}
 
-	router := BuildRouter(cfg, backends)
+	router := BuildRouter(cfg, backends, nil)
 	ts := httptest.NewServer(router)
 	t.Cleanup(ts.Close)
 

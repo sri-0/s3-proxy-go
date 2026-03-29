@@ -5,6 +5,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/sri/s3-proxy-go/internal/backend"
+	"github.com/sri/s3-proxy-go/internal/catalog"
 )
 
 type RouteConfig struct {
@@ -16,6 +17,7 @@ type RouteConfig struct {
 	MandatoryHeaders    []string
 	SecurityTagHeader   string
 	ExcludedMetaHeaders map[string]bool
+	Catalog             catalog.Catalog
 }
 
 func extractBucketKey(rc *RouteConfig, r *http.Request) (string, string) {
