@@ -1,0 +1,46 @@
+listenAddr: ":8080"
+
+# Security tag IDs that PutObject requests may carry
+allowedSecurityTags:
+  - C1000
+  - C1001
+  - C1002
+  - C1003
+
+# The header name used to convey the security tag ID
+securityTagHeader: X-Securitytagid
+
+# Headers that MUST be present on every PutObject request
+mandatoryPutHeaders:
+  - X-Securitytagid
+
+# Headers to strip when building the .meta sidecar
+excludedMetaHeaders:
+  - Authorization
+  - Content-Length
+  - Host
+  - Connection
+
+accounts:
+  - name: primary
+    endpoint: minio1:9000
+    region: us-east-1
+    accessKeyEnvVar: PRIMARY_ACCESS_KEY
+    secretKeyEnvVar: PRIMARY_SECRET_KEY
+    pathPrefix: /primary
+    useSSL: false
+    allowedOperations: [LIST, GET, PUT, HEAD]
+    buckets:
+      - name: documents
+        allowedOperations: [LIST, GET, PUT, DELETE, HEAD]
+      - name: images
+
+  - name: archive
+    endpoint: minio2:9000
+    region: us-east-1
+    accessKeyEnvVar: ARCHIVE_ACCESS_KEY
+    secretKeyEnvVar: ARCHIVE_SECRET_KEY
+    useSSL: false
+    allowedOperations: [LIST, GET, HEAD]
+    buckets:
+      - name: backups
