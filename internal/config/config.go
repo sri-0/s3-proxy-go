@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/sri/s3-proxy-go/internal/catalog"
 	"gopkg.in/yaml.v3"
 )
 
@@ -22,7 +23,8 @@ type Config struct {
 	SecurityTagHeader   string          `yaml:"securityTagHeader"`
 	MandatoryPutHeaders []string        `yaml:"mandatoryPutHeaders"`
 	ExcludedMetaHeaders []string        `yaml:"excludedMetaHeaders"`
-	Accounts            []AccountConfig `yaml:"accounts"`
+	Accounts            []AccountConfig       `yaml:"accounts"`
+	Catalog             catalog.CatalogConfig `yaml:"catalog"`
 }
 
 type AccountConfig struct {
@@ -132,7 +134,15 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	return c.validateRouteClashes()
+	if err := c.validateRouteClashes(); err != nil {
+		return err
+	}
+
+	if err := c.Catalog.Validate(); err != nil {
+		return fmt.Errorf("catalog: %w", err)
+	}
+
+	return nil
 }
 
 func validateOps(ops []string) error {

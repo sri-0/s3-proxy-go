@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/sri/s3-proxy-go/internal/backend"
+	"github.com/sri/s3-proxy-go/internal/catalog"
 	"github.com/sri/s3-proxy-go/internal/config"
 	"github.com/sri/s3-proxy-go/internal/proxy"
 )
@@ -46,7 +47,17 @@ func main() {
 		log.Printf("connected to backend %s at %s", acc.Name, acc.Endpoint)
 	}
 
-	router := proxy.BuildRouter(cfg, backends)
+	var cat catalog.Catalog
+	if cfg.Catalog.Enabled {
+		cat, err = catalog.New(cfg.Catalog, cfg.AllowedSecurityTags, cfg.SecurityTagHeader)
+		if err != nil {
+			log.Fatalf("catalog init: %v", err)
+		}
+		defer cat.Close()
+		log.Printf("iceberg catalog enabled, strategy=%s", cfg.Catalog.TableStrategy)
+	}
+
+	router := proxy.BuildRouter(cfg, backends, cat)
 
 	log.Printf("s3-proxy listening on %s", cfg.ListenAddr)
 	log.Fatal(http.ListenAndServe(cfg.ListenAddr, router))

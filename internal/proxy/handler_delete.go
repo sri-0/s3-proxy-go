@@ -9,6 +9,7 @@ import (
 
 	"github.com/sri/s3-proxy-go/internal/auth"
 	"github.com/sri/s3-proxy-go/internal/backend"
+	"github.com/sri/s3-proxy-go/internal/catalog"
 	"github.com/sri/s3-proxy-go/internal/meta"
 )
 
@@ -67,6 +68,17 @@ func handleDeleteObject(rc *RouteConfig, w http.ResponseWriter, r *http.Request)
 
 	if err := rc.Backend.RemoveObject(r.Context(), bucket, key+".meta"); err != nil {
 		log.Printf("DeleteObject %s/%s: failed to remove .meta: %v", bucket, key, err)
+	}
+
+	if rc.Catalog != nil {
+		recCtx := catalog.RecordContext{
+			AccountName: rc.AccountName,
+			Bucket:      bucket,
+			Key:         key,
+		}
+		if err := rc.Catalog.RecordDelete(r.Context(), recCtx, objMeta.SecurityTagID); err != nil {
+			log.Printf("DeleteObject %s/%s: catalog record failed: %v", bucket, key, err)
+		}
 	}
 
 	w.WriteHeader(http.StatusNoContent)

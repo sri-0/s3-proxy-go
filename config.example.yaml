@@ -44,3 +44,108 @@ accounts:
     allowedOperations: [LIST, GET, HEAD]
     buckets:
       - name: backups
+
+# Iceberg metadata catalog (optional)
+catalog:
+  enabled: false
+
+  # Dedicated S3 for Iceberg Parquet data files
+  storage:
+    endpoint: minio-catalog:9000
+    region: us-east-1
+    bucket: iceberg-warehouse
+    accessKeyEnvVar: CATALOG_ACCESS_KEY
+    secretKeyEnvVar: CATALOG_SECRET_KEY
+    useSSL: false
+    warehousePath: s3://iceberg-warehouse/metadata-catalog
+
+  # Catalog metadata backend: sql (SQLite) or rest
+  catalogType: sql
+  sqlitePath: "./catalog.db"
+  # catalogURI: "http://nessie:19120/api/v1"  # for rest
+  catalogNamespace: "s3proxy"
+
+  # Table structure: single | two_tier | per_tag
+  tableStrategy: two_tier
+  baseSecurityTag: C1000
+  failOnError: false
+
+  columns:
+    mandatory:
+      - name: object_key
+        source: _key
+        icebergType: string
+        securityLevel: base
+        sortOrder: asc
+
+      - name: bucket
+        source: _bucket
+        icebergType: string
+        securityLevel: base
+        partitionBy: identity
+        bloomFilter: true
+
+      - name: security_tag_id
+        source: X-Securitytagid
+        icebergType: string
+        securityLevel: elevated
+        partitionBy: identity
+        bloomFilter: true
+
+      - name: content_type
+        source: Content-Type
+        icebergType: string
+        securityLevel: base
+        bloomFilter: true
+
+      - name: account_name
+        source: _account
+        icebergType: string
+        securityLevel: base
+
+      - name: created_at
+        source: _timestamp
+        icebergType: timestamptz
+        securityLevel: base
+        partitionBy: day
+        sortOrder: desc
+
+      - name: updated_at
+        source: _timestamp_updated
+        icebergType: timestamptz
+        securityLevel: base
+
+      - name: deleted_at
+        source: _timestamp_deleted
+        icebergType: timestamptz
+        securityLevel: base
+
+    optional:
+      - name: content_length
+        source: Content-Length
+        icebergType: long
+        securityLevel: base
+
+      - name: filename
+        source: X-Filename
+        icebergType: string
+        securityLevel: base
+        bloomFilter: true
+
+      - name: md5
+        source: X-Content-Md5
+        icebergType: string
+        securityLevel: base
+        bloomFilter: true
+
+      - name: ssdeep
+        source: X-Ssdeep
+        icebergType: string
+        securityLevel: base
+        bloomFilter: true
+
+      - name: mime_type
+        source: X-Mime-Type
+        icebergType: string
+        securityLevel: base
+        bloomFilter: true
